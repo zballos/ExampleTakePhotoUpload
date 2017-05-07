@@ -24,6 +24,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ContextThemeWrapper;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -35,9 +36,11 @@ import android.widget.ImageView;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import br.com.zballos.examplephoto.adapters.MyImageAdapter;
 import br.com.zballos.examplephoto.model.MyImage;
 import io.realm.Realm;
 
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Uri fileUri;
     private AlertDialog dialog;
+    private List<MyImage> mList;
 
     private String[] permissions = new String[]{
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -82,6 +86,42 @@ public class MainActivity extends AppCompatActivity {
                 captureImage();
             }
         });
+
+        mRecyclerView = (RecyclerView) findViewById(R.id.rvImages);
+        mRecyclerView.setHasFixedSize(true);
+        /*mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                LinearLayoutManager llm = (LinearLayoutManager) mRecyclerView.getLayoutManager();
+
+                if ( !isLastItem
+                        && mList.size() == llm.findLastCompletelyVisibleItemPosition() + 1
+                        && (mSwipeRefreshLayout == null || !mSwipeRefreshLayout.isRefreshing()) ) {
+                    NetworkConnection.getInstance(getActivity()).execute(PontoTuristicoFragment.this, PontoTuristicoFragment.class.getName());
+                }
+            }
+        });*/
+        //mRecyclerView.addOnItemTouchListener(new RecyclerViewTouchListener(this, mRecyclerView, this ));
+
+        LinearLayoutManager llm = new LinearLayoutManager(this);
+        llm.setOrientation(LinearLayoutManager.VERTICAL);
+
+        mRecyclerView.setLayoutManager(llm);
+
+        Realm realm = Realm.getDefaultInstance();
+        mList = realm.where(MyImage.class).findAll();
+        MyImageAdapter adapter = new MyImageAdapter(this, mList);
+        //adapter.setRecyclerViewOnClickListenerHack(this);
+        mRecyclerView.setAdapter( adapter );
+
+        //activateSwipRefresh(view, this, PontoTuristicoFragment.class.getName());
 
         checkPermissions();
     }
@@ -197,8 +237,7 @@ public class MainActivity extends AppCompatActivity {
                 Snackbar.make(coordinatorLayout, "Sorry! Failed to capture image", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        }
-        if (requestCode == ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE) {
+        }if (requestCode == ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE) {
             if (!Settings.canDrawOverlays(this)) {
                 // SYSTEM_ALERT_WINDOW permission not granted...
                 Snackbar.make(coordinatorLayout, "Essa merda continua sem permissão!", Snackbar.LENGTH_LONG)
@@ -329,14 +368,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveImage(String path) {
-        MyImage image = new MyImage();
+        Realm realm = Realm.getDefaultInstance();
+        realm.beginTransaction();
+
+        MyImage image = realm.createObject(MyImage.class);
         image.setPathName(path);
         image.setSyncronized(false);
         image.setTitle("Image ");
 
-        Realm realm = Realm.getDefaultInstance();
-        realm.beginTransaction();
-        realm.copyFromRealm(image);
         realm.commitTransaction();
+        realm.close();
     }
 }
