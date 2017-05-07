@@ -2,20 +2,15 @@ package br.com.zballos.examplephoto;
 
 import android.Manifest;
 import android.annotation.TargetApi;
-import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
-import android.support.constraint.ConstraintLayout;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -23,36 +18,34 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.view.ContextThemeWrapper;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.ImageView;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import br.com.zballos.examplephoto.adapters.MyImageAdapter;
 import br.com.zballos.examplephoto.model.MyImage;
 import io.realm.Realm;
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity
+{
     private CoordinatorLayout coordinatorLayout;
     private RecyclerView mRecyclerView;
-    // Activity request codes
+
     private static final int CAMERA_CAPTURE_IMAGE_REQUEST_CODE = 100;
-    //private static final int CAMERA_CAPTURE_VIDEO_REQUEST_CODE = 200;
     public static final int MEDIA_TYPE_IMAGE = 1;
+
+    // TODO: Capture video
+    // private static final int CAMERA_CAPTURE_VIDEO_REQUEST_CODE = 200;
     //public static final int MEDIA_TYPE_VIDEO = 2;
+
     public static int ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE= 1234;
 
     // directory name to store captured images and videos
@@ -81,34 +74,12 @@ public class MainActivity extends AppCompatActivity {
         fabCapturePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
                 captureImage();
             }
         });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.rvImages);
         mRecyclerView.setHasFixedSize(true);
-        /*mRecyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                super.onScrollStateChanged(recyclerView, newState);
-            }
-
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
-
-                LinearLayoutManager llm = (LinearLayoutManager) mRecyclerView.getLayoutManager();
-
-                if ( !isLastItem
-                        && mList.size() == llm.findLastCompletelyVisibleItemPosition() + 1
-                        && (mSwipeRefreshLayout == null || !mSwipeRefreshLayout.isRefreshing()) ) {
-                    NetworkConnection.getInstance(getActivity()).execute(PontoTuristicoFragment.this, PontoTuristicoFragment.class.getName());
-                }
-            }
-        });*/
-        //mRecyclerView.addOnItemTouchListener(new RecyclerViewTouchListener(this, mRecyclerView, this ));
 
         LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setOrientation(LinearLayoutManager.VERTICAL);
@@ -118,10 +89,7 @@ public class MainActivity extends AppCompatActivity {
         Realm realm = Realm.getDefaultInstance();
         mList = realm.where(MyImage.class).findAll();
         MyImageAdapter adapter = new MyImageAdapter(this, mList);
-        //adapter.setRecyclerViewOnClickListenerHack(this);
         mRecyclerView.setAdapter( adapter );
-
-        //activateSwipRefresh(view, this, PontoTuristicoFragment.class.getName());
 
         checkPermissions();
     }
@@ -163,33 +131,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        for (String s: permissions
-             ) {
-            Log.e("PERMISSION", s + " code : " + requestCode);
-        }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     /**
      * Verify if device has camera hardware or not
      * */
@@ -208,9 +149,7 @@ public class MainActivity extends AppCompatActivity {
             checkPermissions();
         } else {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
             fileUri = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
-
             intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
 
             // start the image capture Intent
@@ -218,75 +157,47 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //@TargetApi(Build.VERSION_CODES.M)
+    @TargetApi(Build.VERSION_CODES.M)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.e("requestCode", requestCode + "");
         // if the result is capturing Image
         if (requestCode == CAMERA_CAPTURE_IMAGE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
-                // successfully captured the image
-                // display it in image view
-                previewCapturedImage();
+                afterCapturedImage();
             } else if (resultCode == RESULT_CANCELED) {
                 // user cancelled Image capture
-                Snackbar.make(coordinatorLayout, "User cancelled image capture", Snackbar.LENGTH_LONG)
+                Snackbar.make(coordinatorLayout, "Usuário cancelou a captura de imagem.", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             } else {
                 // failed to capture image
-                Snackbar.make(coordinatorLayout, "Sorry! Failed to capture image", Snackbar.LENGTH_LONG)
+                Snackbar.make(coordinatorLayout, "Desculpe! Falha ao capturar imagem.", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        }if (requestCode == ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE) {
+        } else if (requestCode == ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE) {
             if (!Settings.canDrawOverlays(this)) {
                 // SYSTEM_ALERT_WINDOW permission not granted...
-                Snackbar.make(coordinatorLayout, "Essa merda continua sem permissão!", Snackbar.LENGTH_LONG)
+                Snackbar.make(coordinatorLayout, "Permissão de sobreposição ainda está desativada!", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         }
     }
 
-    /*
-     * Display image from a path to ImageView
-     */
-    private void previewCapturedImage() {
+    private void afterCapturedImage() {
         try {
-            // hide video preview
-            //videoPreview.setVisibility(View.GONE);
-
-            // bimatp factory
-            BitmapFactory.Options options = new BitmapFactory.Options();
-
-            // downsizing image as it throws OutOfMemory Exception for larger
-            // images
-            options.inSampleSize = 8;
-
-            final Bitmap bitmap = BitmapFactory.decodeFile(fileUri.getPath(),
-                    options);
-
-            //dialogPreviewPhoto(bitmap);
             saveImage(fileUri.getPath());
         } catch (NullPointerException e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * Here we store the file url as it will be null after returning from camera
-     * app
-     */
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
-        // save file url in bundle as it will be null on scren orientation
-        // changes
+        // save file url in bundle as it will be null on scren orientation changes
         outState.putParcelable("file_uri", fileUri);
     }
 
-    /*
-     * Here we restore the fileUri again
-     */
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
@@ -302,18 +213,12 @@ public class MainActivity extends AppCompatActivity {
         return Uri.fromFile(getOutputMediaFile(type));
     }
 
-    /*
-     * returning image / video
-     */
     private File getOutputMediaFile(int type) {
-        Log.e("DIR", getExternalCacheDir().getPath());
-        Log.e("DIR", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getPath());
-
         // External sdcard location
         File mediaStorageDir = new File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
                 IMAGE_DIRECTORY_NAME);
-        Log.e("DIR", mediaStorageDir.getPath());
+
         // Create the storage directory if it does not exist
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
@@ -328,7 +233,6 @@ public class MainActivity extends AppCompatActivity {
                 Locale.getDefault()).format(new Date());
         File mediaFile;
         if (type == MEDIA_TYPE_IMAGE) {
-            Log.d("gatPath", mediaStorageDir.getPath());
             mediaFile = new File(mediaStorageDir.getPath() + File.separator
                     + "IMG_" + timeStamp + ".jpg");
         } /*else if (type == MEDIA_TYPE_VIDEO) {
@@ -341,32 +245,13 @@ public class MainActivity extends AppCompatActivity {
         return mediaFile;
     }
 
-    private void dialogPreviewPhoto(Bitmap bitmap) {
-        View inflater = getLayoutInflater().inflate(R.layout.dialog_preview, null);
-
-        ContextThemeWrapper contextWrapper = new ContextThemeWrapper(this, R.style.AppTheme_DialogPreview);
-        AlertDialog.Builder builder =
-                new AlertDialog.Builder(
-                        contextWrapper
-                );
-        builder.setView(inflater);
-        builder.setCancelable(false);
-
-        ImageView ivPhoto = (ImageView) inflater.findViewById(R.id.ivPreview);
-        ivPhoto.setImageBitmap(bitmap);
-
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialog.dismiss();
-            }
-        });
-
-        dialog = builder.create();
-        dialog.setTitle("Preview");
-        dialog.show();
-    }
-
+    /**
+     * saveImage method
+     *
+     * Save image info to object MyImage. Only save path of the image.
+     *
+     * @param path of the image, for example: /storage/Picture/IMG_9988888.jpg
+     */
     private void saveImage(String path) {
         Realm realm = Realm.getDefaultInstance();
         realm.beginTransaction();
