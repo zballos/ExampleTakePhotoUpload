@@ -5,6 +5,8 @@ import android.annotation.TargetApi;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,11 +20,13 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.ContextThemeWrapper;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -41,14 +45,11 @@ public class MainActivity extends AppCompatActivity
 
     private static final int CAMERA_CAPTURE_IMAGE_REQUEST_CODE = 100;
     public static final int MEDIA_TYPE_IMAGE = 1;
-
-    // TODO: Capture video
-    // private static final int CAMERA_CAPTURE_VIDEO_REQUEST_CODE = 200;
-    //public static final int MEDIA_TYPE_VIDEO = 2;
+    public static final int SELECT_PICTURE = 1;
 
     public static int ACTION_MANAGE_OVERLAY_PERMISSION_REQUEST_CODE= 1234;
 
-    // directory name to store captured images and videos
+    // directory name to store captured images
     private static final String IMAGE_DIRECTORY_NAME = "Photos";
 
     private Uri fileUri;
@@ -66,6 +67,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle(R.string.pictures);
         setSupportActionBar(toolbar);
 
         coordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordinatorLayout);
@@ -74,7 +76,7 @@ public class MainActivity extends AppCompatActivity
         fabCapturePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                captureImage();
+                selectMethodPickImage();
             }
         });
 
@@ -151,10 +153,15 @@ public class MainActivity extends AppCompatActivity
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             fileUri = getOutputMediaFileUri(MEDIA_TYPE_IMAGE);
             intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-
-            // start the image capture Intent
             startActivityForResult(intent, CAMERA_CAPTURE_IMAGE_REQUEST_CODE);
         }
+    }
+
+    private void getImageFromGallery() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, ""), SELECT_PICTURE);
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -179,6 +186,16 @@ public class MainActivity extends AppCompatActivity
                 Snackbar.make(coordinatorLayout, "Permissão de sobreposição ainda está desativada!", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
+        } else if (requestCode == SELECT_PICTURE && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            //String[] projection = { MediaStore.Images.Media.DATA };
+            String[] projection = {MediaStore.MediaColumns.DATA};
+            Cursor cursor = getContentResolver().query(data.getData(), projection, null, null, null);
+            cursor.moveToFirst();
+
+            int columnIndex = cursor.getColumnIndexOrThrow(projection[0]);
+            String picturePath = cursor.getString(columnIndex); // returns null
+            cursor.close();
+            saveImage(picturePath);
         }
     }
 
@@ -259,9 +276,51 @@ public class MainActivity extends AppCompatActivity
         MyImage image = realm.createObject(MyImage.class);
         image.setPathName(path);
         image.setSyncronized(false);
-        image.setTitle("Image ");
+        image.setTitle("Path:: " + path);
 
         realm.commitTransaction();
         realm.close();
+    }
+
+    private void selectMethodPickImage() {
+        View inflater = getLayoutInflater().inflate(R.layout.dialog_type_pick_image, null);
+
+        ContextThemeWrapper contextWrapper = new ContextThemeWrapper(this, R.style.AppTheme_DialogPreview);
+        AlertDialog.Builder builder =
+                new AlertDialog.Builder(
+                        contextWrapper
+                );
+        builder.setView(inflater);
+        builder.setCancelable(false);
+
+        ImageView ivGallery = (ImageView) inflater.findViewById(R.id.ivGallery);
+        ImageView ivPick = (ImageView) inflater.findViewById(R.id.ivCamera);
+
+        ivGallery.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getImageFromGallery();
+                dialog.dismiss();
+            }
+        });
+
+        ivPick.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                captureImage();
+                dialog.dismiss();
+            }
+        });
+
+        builder.setPositiveButton("Cancelar", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialog.dismiss();
+            }
+        });
+
+        dialog = builder.create();
+        dialog.setTitle("");
+        dialog.show();
     }
 }
