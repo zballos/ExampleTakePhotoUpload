@@ -19,6 +19,7 @@ import java.util.List;
 
 import br.com.zballos.examplephoto.R;
 import br.com.zballos.examplephoto.model.MyImage;
+import io.realm.Realm;
 
 /**
  * Created by zballos on 06/05/17.
@@ -79,7 +80,7 @@ public class MyImageAdapter extends RecyclerView.Adapter<MyImageAdapter.MyViewHo
         }
     }
 
-    private void showPopupMenu(View view, int position) {
+    private void showPopupMenu(View view, final int position) {
         PopupMenu popup = new PopupMenu(view.getContext(), view);
         MenuInflater inflater = popup.getMenuInflater();
         inflater.inflate(R.menu.menu_card_image, popup.getMenu());
@@ -88,8 +89,13 @@ public class MyImageAdapter extends RecyclerView.Adapter<MyImageAdapter.MyViewHo
             public boolean onMenuItemClick(MenuItem item) {
                 switch (item.getItemId()){
                     case R.id.delete:
-                        // TODO: ACTION DELETE
-                        Log.e("Click", "Menu delete");
+                        Realm realm = Realm.getDefaultInstance();
+                        realm.beginTransaction();
+                        MyImage myImage = realm.where(MyImage.class).equalTo("UUID", mList.get(position).getUUID()).findFirst();
+                        myImage.deleteFromRealm();
+                        realm.commitTransaction();
+                        realm.close();
+                        notifyDataSetChanged();
                         break;
                     case R.id.sendToWeb:
                         // TODO: MAKE ACTION SEND TO WEB_ADMIN

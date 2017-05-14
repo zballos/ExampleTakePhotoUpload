@@ -3,9 +3,10 @@
     <item
         android:id="@+id/sendToWeb"
         android:orderInCategory="101"
-        android:title="Enviar para Web"/>
+        android:title="@string/send_to_web"
+        android:visible="false"/>
     <item
         android:id="@+id/delete"
         android:orderInCategory="100"
-        android:title="Excluir" />
+        android:title="@string/delete" />
 </menu>

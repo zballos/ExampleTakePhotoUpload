@@ -1,4 +1,9 @@
 <resources>
-    <string name="app_name">ExamplePhoto</string>
+    <string name="app_name">Demo Picture</string>
     <string name="action_settings">Settings</string>
+    <string name="pictures">Pictures</string>
+    <string name="gallery">Escolher na Galeria</string>
+    <string name="capture_camera">Tirar foto</string>
+    <string name="delete">Deletar</string>
+    <string name="send_to_web">Enviar para Web</string>
 </resources>
