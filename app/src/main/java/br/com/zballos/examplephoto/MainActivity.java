@@ -33,6 +33,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
+import java.util.UUID;
 
 import br.com.zballos.examplephoto.adapters.MyImageAdapter;
 import br.com.zballos.examplephoto.model.MyImage;
@@ -88,10 +90,15 @@ public class MainActivity extends AppCompatActivity
 
         mRecyclerView.setLayoutManager(llm);
 
+        MyImage.checkInvalidAndDelete();
+
         Realm realm = Realm.getDefaultInstance();
         mList = realm.where(MyImage.class).findAll();
+        Log.e("count2", mList.size() + "");
+        //realm.close();
+
         MyImageAdapter adapter = new MyImageAdapter(this, mList);
-        mRecyclerView.setAdapter( adapter );
+        mRecyclerView.setAdapter(adapter);
 
         checkPermissions();
     }
@@ -195,7 +202,12 @@ public class MainActivity extends AppCompatActivity
             int columnIndex = cursor.getColumnIndexOrThrow(projection[0]);
             String picturePath = cursor.getString(columnIndex); // returns null
             cursor.close();
-            saveImage(picturePath);
+            if (picturePath != null) {
+                saveImage(picturePath);
+            } else {
+                Snackbar.make(coordinatorLayout, "Não foi possível salvar a imagem!", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
         }
     }
 
@@ -252,10 +264,7 @@ public class MainActivity extends AppCompatActivity
         if (type == MEDIA_TYPE_IMAGE) {
             mediaFile = new File(mediaStorageDir.getPath() + File.separator
                     + "IMG_" + timeStamp + ".jpg");
-        } /*else if (type == MEDIA_TYPE_VIDEO) {
-            mediaFile = new File(mediaStorageDir.getPath() + File.separator
-                    + "VID_" + timeStamp + ".mp4");
-        }*/ else {
+        }  else {
             return null;
         }
 
@@ -270,15 +279,21 @@ public class MainActivity extends AppCompatActivity
      * @param path of the image, for example: /storage/Picture/IMG_9988888.jpg
      */
     private void saveImage(String path) {
-        Realm realm = Realm.getDefaultInstance();
-        realm.beginTransaction();
-
-        MyImage image = realm.createObject(MyImage.class);
+        final MyImage image = new MyImage();
+        image.setUUID(UUID.randomUUID().toString());
         image.setPathName(path);
         image.setSyncronized(false);
-        image.setTitle("Path:: " + path);
+        Random random = new Random();
+        int randomNumber = random.nextInt(500);
+        image.setTitle("Image:: " + randomNumber);
 
-        realm.commitTransaction();
+        Realm realm = Realm.getDefaultInstance();
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                realm.copyToRealmOrUpdate(image);
+            }
+        });
         realm.close();
     }
 
